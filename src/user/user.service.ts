@@ -14,50 +14,55 @@ import { User } from './entities/user.entity';
 export class UserService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  addUser(createUserDto: CreateUserDto): User {
+  create(createUserDto: CreateUserDto): User {
     const newUser: User = this.createUserObject(createUserDto);
     this.databaseService.users.add(newUser.id, newUser);
     return plainToClass(User, newUser);
   }
 
   private createUserObject(createUserDto: CreateUserDto): User {
-    return {
-      id: uuidv4(),
+    const now = Date.now();
+    const newUser: User = {
       ...createUserDto,
       version: 1,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      id: uuidv4(),
     };
+    return newUser;
   }
 
-  getAllUsers(): User[] {
+  findAll(): User[] {
     return this.databaseService.users.fetchAll();
   }
 
-  getUserById(id: string): User {
-    this.ensureUserExists(id);
-    return this.databaseService.users.find(id);
+  findOne(id: string): User {
+    const user = this.databaseService.users.find(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} could not be located.`);
+    }
+    return user;
   }
 
-  updateUser(id: string, updateUserDto: UpdateUserDto): User {
+  update(id: string, updateUserDto: UpdateUserDto): User {
     this.validateOldPassword(id, updateUserDto.oldPassword);
     const updatedUser: User = this.getUpdatedUser(
       id,
       updateUserDto.newPassword,
     );
-    this.databaseService.users.add(id, updatedUser); // Make sure to replace this with your actual update method in the DatabaseService
+    this.databaseService.users.add(id, updatedUser);
     return plainToClass(User, updatedUser);
   }
 
   private validateOldPassword(id: string, oldPassword: string): void {
-    const user = this.getUserById(id);
+    const user = this.findOne(id);
     if (user.password !== oldPassword) {
       throw new ForbiddenException('Previous password is wrong');
     }
   }
 
   private getUpdatedUser(id: string, newPassword: string): User {
-    const user = this.getUserById(id);
+    const user = this.findOne(id);
     return {
       ...user,
       password: newPassword,
@@ -66,7 +71,7 @@ export class UserService {
     };
   }
 
-  deleteUser(id: string): void {
+  remove(id: string): void {
     this.ensureUserExists(id);
     this.databaseService.users.delete(id);
   }

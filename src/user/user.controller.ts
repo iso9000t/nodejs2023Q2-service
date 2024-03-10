@@ -20,31 +20,31 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  addUser(@Body() createUserDto: CreateUserDto): User {
-    return this.userService.addUser(createUserDto); // Renamed dto to createUserDto
+  create(@Body() createUserDto: CreateUserDto): User {
+    return this.userService.create(createUserDto);
   }
 
   @Get()
-  getAllUsers(): User[] {
-    return this.userService.getAllUsers();
+  findAll(): User[] {
+    return this.userService.findAll();
   }
 
   @Get(':id')
-  getUserById(@Param('id', ParseUUIDPipe) id: string): User {
-    return this.userService.getUserById(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string): User {
+    return this.userService.findOne(id);
   }
 
   @Put(':id')
-  updateUser(
+  update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): User {
-    return this.userService.updateUser(id, updateUserDto); // Renamed dto to updateUserDto
+    return this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteUser(@Param('id', ParseUUIDPipe) id: string): void {
-    this.userService.deleteUser(id);
+  remove(@Param('id', ParseUUIDPipe) id: string): void {
+    this.userService.remove(id);
   }
 }

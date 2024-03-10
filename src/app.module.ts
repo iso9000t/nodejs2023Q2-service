@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { TrackModule } from './track/track.module';
+import { AlbumModule } from './album/album.module';
+import { ArtistModule } from './artist/artist.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { TrackModule } from './track/track.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    AlbumModule,
+    ArtistModule,
   ],
   controllers: [AppController],
   providers: [AppService],

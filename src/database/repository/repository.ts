@@ -13,7 +13,7 @@ export class Repository<T> {
     return Object.values(this.items);
   }
 
-  find(id: string): T | undefined {
+  getOne(id: string): T | undefined {
     return this.items[id];
   }
 

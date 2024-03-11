@@ -1,50 +1,50 @@
-import {
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Put,
-  Body,
-  Controller,
-  Delete,
-} from '@nestjs/common';
-import { Track } from './entities/track.entity';
 import { TrackService } from './track.service';
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
+import { Track } from './entities/track.entity';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Put,
+  Delete,
+  Param,
+  HttpStatus,
+  HttpCode,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 
 @Controller('track')
 export class TrackController {
-  constructor(private readonly trackService: TrackService) {}
+  constructor(private readonly service: TrackService) {}
 
   @Post()
-  create(@Body() createTrackDto: CreateTrackDto): Track {
-    return this.trackService.create(createTrackDto);
+  createTrack(@Body() createDto: CreateTrackDto): Track {
+    return this.service.create(createDto);
   }
 
   @Get()
-  findAll(): Track[] {
-    return this.trackService.findAll();
+  getAllTracks(): Track[] {
+    return this.service.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) trackId: string): Track {
-    return this.trackService.findOne(trackId);
+  getTrack(@Param('id', ParseUUIDPipe) uuid: string): Track {
+    return this.service.findOne(uuid);
   }
 
   @Put(':id')
-  update(
-    @Param('id', ParseUUIDPipe) trackId: string,
-    @Body() updateTrackDto: UpdateTrackDto,
+  updateTrack(
+    @Param('id', ParseUUIDPipe) uuid: string,
+    @Body() updateDto: UpdateTrackDto,
   ): Track {
-    return this.trackService.update(trackId, updateTrackDto);
+    return this.service.update(uuid, updateDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseUUIDPipe) trackId: string): void {
-    this.trackService.remove(trackId);
+  deleteTrack(@Param('id', ParseUUIDPipe) uuid: string): void {
+    this.service.remove(uuid);
   }
 }

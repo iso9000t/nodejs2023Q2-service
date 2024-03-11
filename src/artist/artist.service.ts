@@ -1,53 +1,77 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateArtistDto } from './dto/create-artist.dto';
+import { UpdateArtistDto } from './dto/update-artist.dto';
+import { DatabaseService } from '../database/database.service';
+import { plainToClass } from 'class-transformer';
 import { v4 as uuidv4 } from 'uuid';
 import { Artist } from './entities/artist.entity';
-import { DatabaseService } from '../database/database.service';
-import { UpdateArtistDto } from './dto/update-artist.dto';
-import { CreateArtistDto } from './dto/create-artist.dto';
 
 @Injectable()
 export class ArtistService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private dbService: DatabaseService) {}
 
-  create(createArtistDto: CreateArtistDto): Artist {
-    const artistId = uuidv4();
-    const artistToCreate = new Artist();
-    artistToCreate.id = artistId;
-    Object.assign(artistToCreate, createArtistDto);
-    this.databaseService.artists.add(artistId, artistToCreate);
-    return artistToCreate;
+  create(createDto: CreateArtistDto): Artist {
+    const newId = uuidv4();
+    const artistEntry = new Artist();
+    artistEntry.id = newId;
+    Object.assign(artistEntry, createDto);
+
+    this.dbService.artists.add(newId, artistEntry);
+    return artistEntry;
   }
 
   findAll(): Artist[] {
-    return this.databaseService.artists.fetchAll();
+    return this.dbService.artists.fetchAll();
   }
 
   findOne(artistId: string): Artist {
-    const artistExists = this.databaseService.artists.exists(artistId);
-    if (!artistExists) {
-      throw new NotFoundException(`Artist with ID ${artistId} not found.`);
-    }
-    const artist = this.databaseService.artists.find(artistId);
+    const artist = this.dbService.artists.getOne(artistId);
+    if (!artist)
+      throw new NotFoundException(`No artist found with ID ${artistId}`);
     return artist;
   }
 
-  update(artistId: string, updateArtistDto: UpdateArtistDto): Artist {
-    this.ensureArtistExists(artistId);
-    const artistToUpdate = this.databaseService.artists.find(artistId);
-    const updatedArtist = { ...artistToUpdate, ...updateArtistDto };
-
-    this.databaseService.artists.add(artistId, updatedArtist);
+  update(artistId: string, updateDto: UpdateArtistDto): Artist {
+    const existingArtist = this.findOne(artistId);
+    const updatedArtist = plainToClass(Artist, {
+      ...existingArtist,
+      ...updateDto,
+    });
+    this.dbService.artists.add(artistId, updatedArtist);
     return updatedArtist;
   }
 
   remove(artistId: string): void {
-    this.ensureArtistExists(artistId);
-    this.databaseService.artists.delete(artistId);
+    this.validateArtistExistence(artistId);
+    this.dbService.artists.delete(artistId);
+    this.clearRelatedEntities(artistId);
   }
 
-  private ensureArtistExists(artistId: string): void {
-    if (!this.databaseService.artists.exists(artistId)) {
-      throw new NotFoundException(`Artist with ID ${artistId} not found.`);
+  private validateArtistExistence(artistId: string): void {
+    if (!this.dbService.artists.exists(artistId)) {
+      throw new NotFoundException(`Artist with ID ${artistId} does not exist.`);
     }
+  }
+
+  private clearRelatedEntities(artistId: string): void {
+    this.clearAlbums(artistId);
+    this.clearTracks(artistId);
+    this.dbService.favorites.deleteFav(artistId, 'artists');
+  }
+
+  private clearAlbums(artistId: string): void {
+    this.dbService.albums.fetchAll().forEach((album) => {
+      if (album.artistId === artistId) {
+        this.dbService.albums.add(album.id, { ...album, artistId: null });
+      }
+    });
+  }
+
+  private clearTracks(artistId: string): void {
+    this.dbService.tracks.fetchAll().forEach((track) => {
+      if (track.artistId === artistId) {
+        this.dbService.tracks.add(track.id, { ...track, artistId: null });
+      }
+    });
   }
 }

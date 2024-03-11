@@ -1,8 +1,8 @@
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsString, IsNotEmpty } from 'class-validator';
 
 export class CreateArtistDto {
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   name: string;
 
   @IsBoolean()

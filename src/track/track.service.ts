@@ -11,11 +11,18 @@ export class TrackService {
 
   create(trackData: CreateTrackDto): Track {
     const trackId = uuidv4();
-    const trackToAdd: Track = Object.assign({}, trackData, {
+    const artistExists = this.databaseService.artists.exists(
+      trackData.artistId,
+    );
+    const albumExists = this.databaseService.albums.exists(trackData.albumId);
+
+    const trackToAdd: Track = {
       id: trackId,
-      artistId: null,
-      albumId: null,
-    });
+      name: trackData.name,
+      artistId: artistExists ? trackData.artistId : null,
+      albumId: albumExists ? trackData.albumId : null,
+      duration: trackData.duration,
+    };
 
     this.databaseService.tracks.add(trackId, trackToAdd);
     return trackToAdd;
@@ -26,17 +33,15 @@ export class TrackService {
   }
 
   findOne(trackId: string): Track {
-    const track = this.databaseService.tracks.find(trackId);
+    const track = this.databaseService.tracks.getOne(trackId);
     if (!track) {
-      throw new NotFoundException(
-        `Track with ID ${trackId} could not be located.`,
-      );
+      throw new NotFoundException(`Track with ID ${trackId} not found.`);
     }
     return track;
   }
 
   update(trackId: string, updateTrackDto: UpdateTrackDto): Track {
-    if (!trackId) {
+    if (!this.databaseService.tracks.exists(trackId)) {
       throw new NotFoundException(`Track ${trackId} not found`);
     }
     const track = this.findOne(trackId);
@@ -47,7 +52,19 @@ export class TrackService {
   }
 
   remove(trackId: string): void {
-    this.findOne(trackId);
+    const trackPresent = this.databaseService.tracks.exists(trackId);
+    if (!trackPresent) {
+      throw new NotFoundException(`No track with ID: ${trackId} not found.`);
+    }
+
     this.databaseService.tracks.delete(trackId);
+
+    const isFavTrack = this.databaseService.favorites.favExists(
+      trackId,
+      'tracks',
+    );
+    if (isFavTrack) {
+      this.databaseService.favorites.deleteFav(trackId, 'tracks');
+    }
   }
 }

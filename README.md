@@ -36,12 +36,18 @@ Ensure you have these essentials:
 
 ### Start It Up
 
-Run the application:
+create the service:
 
-npm start
+docker-compose up -d (or use "docker:up" script)
+
+migrate: docker-compose exec home-library npx prisma migrate dev (or use "prisma:migrate" script)
 
 Head over to `http://localhost:4000` (or whatever port you've configured) to see the app live. 
-And don't miss out on the OpenAPI documentation at `http://localhost:4000/doc/` for a comprehensive guide to what's possible with your new service.
+And don't miss out on the OpenAPI documentation at `http://localhost:4000/api-doc/` for a comprehensive guide to what's possible with your new service.
+
+## Check vulnerabilities 
+
+docker scout cves (or "docker:scan" script)
 
 ## Testing
 

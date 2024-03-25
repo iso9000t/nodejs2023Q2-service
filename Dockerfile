@@ -1,15 +1,50 @@
-FROM node:20-alpine
+# Define node version for reuse in different stages
+ARG NODE_VERSION=20-alpine
 
-WORKDIR /usr/src/app
+# Development stage
+FROM node:${NODE_VERSION} AS development
+USER node
+WORKDIR /app
 
-# Copy package.json and package-lock.json first to leverage Docker cache
-COPY package*.json ./
+# Install dependencies
+COPY ["package.json", "package-lock.json*", "./"]
+RUN npm ci
 
-RUN npm install
+# Generate Prisma client
+COPY prisma ./prisma
+RUN npx prisma generate
 
-# Copy the rest of the application code
-COPY . .
+# Copy application code
+COPY --chown=node:node . .
+CMD ["npm", "run", "start:dev"]
 
-EXPOSE 4000
+# Build stage
+FROM node:${NODE_VERSION} AS build
+USER node
+WORKDIR /app
 
-CMD ["npm", "start"]
+# Copying necessary files
+COPY --chown=node:node --from=development /app/node_modules ./node_modules
+COPY --chown=node:node . .
+
+# Build application
+RUN npm run build
+
+# Setting production environment
+ENV NODE_ENV production
+
+# Install production dependencies only
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Production stage
+FROM node:${NODE_VERSION} AS production
+USER node
+WORKDIR /app
+
+# Copying necessary artifacts for production
+COPY --chown=node:node --from=build /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node:node ./doc ./doc
+
+# Command to run the application
+CMD ["node", "dist/main.js"]

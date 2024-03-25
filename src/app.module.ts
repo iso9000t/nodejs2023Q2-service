@@ -16,7 +16,9 @@ import { ArtistModule } from './artist/artist.module';
     FavoritesModule,
     ArtistModule,
     AlbumModule,
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],

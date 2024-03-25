@@ -2,33 +2,39 @@ version: '3.8'
 
 services:
   home-library:
-    container_name: my-node-app
+    container_name: home-library
     restart: always
     build:
       context: .
+      dockerfile: Dockerfile
+      target: development
     volumes:
-      - ./src:/app/src
+      - type: bind
+        source: ./src
+        target: /app/src
     ports:
-      - "${PORT}:4000"
-    env_file:
+      - "${PORT}:${PORT}"
+    environment:
+      PORT: "${PORT}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?schema=public"
+    env_file: 
       - .env
     depends_on:
-      - postgres
-    environment:
-      PORT: ${PORT}
+      - postgresdb
     networks:
       - home-library-network
 
-  postgres:
-    container_name: postgres
-    image: postgres:16-alpine
+  postgresdb:
+    container_name: postgresdb
     restart: always
+    build: 
+      context: ./postgres/
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     networks:
       - home-library-network
     volumes:

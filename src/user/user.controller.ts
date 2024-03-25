@@ -3,48 +3,52 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
   Body,
-  Param,
-  HttpStatus,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
   ParseUUIDPipe,
 } from '@nestjs/common';
 
 @Controller('user')
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(private readonly userService: UserService) {}
 
   @Post()
-  createUser(@Body() body: CreateUserDto): User {
-    return this.userService.create(body);
+  async create(@Body() createUserDto: CreateUserDto): Promise<User> {
+    return await this.userService.create(createUserDto);
   }
 
   @Get()
-  getAllUsers(): User[] {
-    return this.userService.findAll();
+  async findAll(): Promise<User[]> {
+    return await this.userService.findAll();
   }
 
   @Get(':id')
-  getUserById(@Param('id', ParseUUIDPipe) uuid: string): User {
-    return this.userService.findOne(uuid);
+  async findOne(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<User> {
+    return await this.userService.findOne(id);
   }
 
   @Put(':id')
-  updateUser(
-    @Param('id', ParseUUIDPipe) uuid: string,
-    @Body() body: UpdateUserDto,
-  ): User {
-    return this.userService.update(uuid, body);
+  async update(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    return await this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteUser(@Param('id', ParseUUIDPipe) uuid: string): void {
-    this.userService.remove(uuid);
+  async remove(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<void> {
+    return await this.userService.remove(id);
   }
 }

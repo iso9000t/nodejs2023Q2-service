@@ -15,7 +15,7 @@
     "start:prod": "node dist/main",
     "docker:up": "docker-compose up -d",
     "docker:clean": "docker-compose down --volumes --rmi all",
-    "migrate": "docker-compose exec home-library npx prisma migrate dev",
+    "prisma:migrate": "docker-compose exec home-library npx prisma migrate dev",
     "docker:scan": "docker scout cves",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest --testPathIgnorePatterns refresh.e2e.spec.ts --noStackTrace --runInBand",

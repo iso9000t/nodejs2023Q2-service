@@ -1,55 +1,43 @@
-import { FavoritesService } from './favorites.service';
-import { FavoritesResponseDto } from './dto/favorites-response.dto';
 import {
   Controller,
   Delete,
   Get,
+  Param,
   HttpCode,
   HttpStatus,
-  ParseUUIDPipe,
   Post,
-  Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
+import { FavoritesService } from './favorites.service';
+import { FavoritesResponseDto } from './dto/favorites-response.dto';
 
 @Controller('favs')
 export class FavoritesController {
-  constructor(private favoritesService: FavoritesService) {}
+  constructor(private readonly favoritesService: FavoritesService) {}
 
   @Get()
-  findAll(): FavoritesResponseDto {
+  async findAll(): Promise<FavoritesResponseDto> {
     return this.favoritesService.findAll();
   }
 
-  @Post('track/:id')
-  addTrack(@Param('id', ParseUUIDPipe) id: string): void {
-    this.favoritesService.add(id, 'tracks');
+  @Post(':type/:id')
+  async addItem(
+    @Param('type') type: 'album' | 'artist' | 'track',
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
+    return this.favoritesService[
+      `add${type.charAt(0).toUpperCase() + type.slice(1)}`
+    ](id);
   }
 
-  @Delete('track/:id')
+  @Delete(':type/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeTrack(@Param('id', ParseUUIDPipe) id: string): void {
-    this.favoritesService.remove(id, 'tracks');
-  }
-
-  @Post('album/:id')
-  addAlbum(@Param('id', ParseUUIDPipe) id: string): void {
-    this.favoritesService.add(id, 'albums');
-  }
-
-  @Delete('album/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  removeAlbum(@Param('id', ParseUUIDPipe) id: string): void {
-    this.favoritesService.remove(id, 'albums');
-  }
-
-  @Post('artist/:id')
-  addArtist(@Param('id', ParseUUIDPipe) id: string): void {
-    this.favoritesService.add(id, 'artists');
-  }
-
-  @Delete('artist/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  removeArtist(@Param('id', ParseUUIDPipe) id: string): void {
-    this.favoritesService.remove(id, 'artists');
+  async removeItem(
+    @Param('type') type: 'album' | 'artist' | 'track',
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<void> {
+    await this.favoritesService[
+      `remove${type.charAt(0).toUpperCase() + type.slice(1)}`
+    ](id);
   }
 }

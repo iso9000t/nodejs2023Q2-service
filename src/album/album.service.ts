@@ -1,71 +1,73 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
 import { plainToClass } from 'class-transformer';
 import { Album } from './entities/album.entity';
-import { UpdateAlbumDto } from './dto/update-album.dto';
-import { DatabaseService } from '../database/database.service';
 import { CreateAlbumDto } from './dto/create-album.dto';
-
+import { UpdateAlbumDto } from './dto/update-album.dto';
+import { PrismaService } from '../database/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 @Injectable()
 export class AlbumService {
-  constructor(private readonly dbService: DatabaseService) {}
+  constructor(private prismaService: PrismaService) {}
 
-  create(createAlbumDto: CreateAlbumDto): Album {
-    const albumId = uuidv4();
-    const album = plainToClass(Album, {
-      id: albumId,
-      ...createAlbumDto,
-      artistId: createAlbumDto.artistId ?? null,
+  async create(createAlbumDto: CreateAlbumDto): Promise<Album> {
+    const album = await this.prismaService.album.create({
+      data: createAlbumDto,
     });
-
-    this.dbService.albums.add(albumId, album);
-    return album;
+    return plainToClass(Album, album);
   }
 
-  findAll(): Album[] {
-    return this.dbService.albums.fetchAll();
+  async findAll(): Promise<Album[]> {
+    const allAlbums = await this.prismaService.album.findMany();
+    return allAlbums.map((album: Album) => plainToClass(Album, album));
   }
 
-  findOne(albumId: string): Album {
-    const album = this.dbService.albums.getOne(albumId);
+  async findOne(albumId: string): Promise<Album> {
+    const album = await this.prismaService.album.findUnique({
+      where: { id: albumId },
+    });
     if (!album) {
-      throw new NotFoundException(
-        `Could not find any album with ID ${albumId}`,
-      );
-    }
-    return album;
-  }
-
-  update(albumId: string, updateAlbumDto: UpdateAlbumDto): Album {
-    this.ensureAlbumExists(albumId);
-    const updatedAlbum = plainToClass(Album, {
-      ...this.findOne(albumId),
-      ...updateAlbumDto,
-    });
-
-    this.dbService.albums.add(albumId, updatedAlbum);
-    return updatedAlbum;
-  }
-
-  remove(albumId: string): void {
-    this.ensureAlbumExists(albumId);
-    this.dbService.albums.delete(albumId);
-    this.detachAlbumFromTracks(albumId);
-    this.dbService.favorites.deleteFav(albumId, 'albums');
-  }
-
-  private ensureAlbumExists(albumId: string): void {
-    if (!this.dbService.albums.exists(albumId)) {
       throw new NotFoundException(`No album found with ID ${albumId}`);
     }
+    return plainToClass(Album, album);
   }
 
-  private detachAlbumFromTracks(albumId: string): void {
-    const tracks = this.dbService.tracks.fetchAll();
-    const tracksToUpdate = tracks.filter((track) => track.albumId === albumId);
+  async update(
+    albumId: string,
+    updateAlbumDto: UpdateAlbumDto,
+  ): Promise<Album> {
+    const updatedAlbum = await this.prismaService.album
+      .update({
+        where: { id: albumId },
+        data: updateAlbumDto,
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof PrismaClientKnownRequestError &&
+          error.code === 'P2025'
+        ) {
+          throw new NotFoundException(`Album with ID ${albumId} not found`);
+        }
+        throw error;
+      });
 
-    tracksToUpdate.forEach((track) => {
-      this.dbService.tracks.add(track.id, { ...track, albumId: null });
-    });
+    return plainToClass(Album, updatedAlbum);
+  }
+
+  async delete(albumId: string): Promise<void> {
+    await this.prismaService.album
+      .delete({
+        where: { id: albumId },
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof PrismaClientKnownRequestError &&
+          error.code === 'P2025'
+        ) {
+          throw new NotFoundException(
+            `Failed to find album with ID ${albumId} for deletion`,
+          );
+        }
+        throw error;
+      });
   }
 }

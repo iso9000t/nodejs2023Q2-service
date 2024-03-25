@@ -1,77 +1,66 @@
+import { plainToClass } from 'class-transformer';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
+import { Artist } from './entities/artist.entity';
 import { CreateArtistDto } from './dto/create-artist.dto';
 import { UpdateArtistDto } from './dto/update-artist.dto';
-import { DatabaseService } from '../database/database.service';
-import { plainToClass } from 'class-transformer';
-import { v4 as uuidv4 } from 'uuid';
-import { Artist } from './entities/artist.entity';
 
 @Injectable()
 export class ArtistService {
-  constructor(private dbService: DatabaseService) {}
+  constructor(private prismaService: PrismaService) {}
 
-  create(createDto: CreateArtistDto): Artist {
-    const newId = uuidv4();
-    const artistEntry = new Artist();
-    artistEntry.id = newId;
-    Object.assign(artistEntry, createDto);
-
-    this.dbService.artists.add(newId, artistEntry);
-    return artistEntry;
-  }
-
-  findAll(): Artist[] {
-    return this.dbService.artists.fetchAll();
-  }
-
-  findOne(artistId: string): Artist {
-    const artist = this.dbService.artists.getOne(artistId);
-    if (!artist)
-      throw new NotFoundException(`No artist found with ID ${artistId}`);
-    return artist;
-  }
-
-  update(artistId: string, updateDto: UpdateArtistDto): Artist {
-    const existingArtist = this.findOne(artistId);
-    const updatedArtist = plainToClass(Artist, {
-      ...existingArtist,
-      ...updateDto,
+  async create(createArtistDto: CreateArtistDto): Promise<Artist> {
+    const artist = await this.prismaService.artist.create({
+      data: createArtistDto,
     });
-    this.dbService.artists.add(artistId, updatedArtist);
-    return updatedArtist;
+    return plainToClass(Artist, artist);
   }
 
-  remove(artistId: string): void {
-    this.validateArtistExistence(artistId);
-    this.dbService.artists.delete(artistId);
-    this.clearRelatedEntities(artistId);
+  async findAll(): Promise<Artist[]> {
+    const allArtists = await this.prismaService.artist.findMany();
+    return allArtists.map((artist: Artist) => plainToClass(Artist, artist));
   }
 
-  private validateArtistExistence(artistId: string): void {
-    if (!this.dbService.artists.exists(artistId)) {
-      throw new NotFoundException(`Artist with ID ${artistId} does not exist.`);
+  async findOne(artistId: string): Promise<Artist> {
+    const artist = await this.prismaService.artist.findUnique({
+      where: { id: artistId },
+    });
+    if (!artist) {
+      throw new NotFoundException(`Artist with ID ${artistId} not found`);
     }
+    return plainToClass(Artist, artist);
   }
 
-  private clearRelatedEntities(artistId: string): void {
-    this.clearAlbums(artistId);
-    this.clearTracks(artistId);
-    this.dbService.favorites.deleteFav(artistId, 'artists');
-  }
-
-  private clearAlbums(artistId: string): void {
-    this.dbService.albums.fetchAll().forEach((album) => {
-      if (album.artistId === artistId) {
-        this.dbService.albums.add(album.id, { ...album, artistId: null });
-      }
+  async update(artistId: string, artistData: UpdateArtistDto): Promise<Artist> {
+    const existingArtist = await this.prismaService.artist.findUnique({
+      where: { id: artistId },
     });
+    if (!existingArtist) {
+      throw new NotFoundException(
+        `Failed to locate artist with ID ${artistId}.`,
+      );
+    }
+
+    const updatedArtist = await this.prismaService.artist.update({
+      where: { id: artistId },
+      data: artistData,
+    });
+
+    return plainToClass(Artist, updatedArtist);
   }
 
-  private clearTracks(artistId: string): void {
-    this.dbService.tracks.fetchAll().forEach((track) => {
-      if (track.artistId === artistId) {
-        this.dbService.tracks.add(track.id, { ...track, artistId: null });
-      }
-    });
+  async delete(artistId: string): Promise<void> {
+    await this.prismaService.artist
+      .delete({
+        where: { id: artistId },
+      })
+      .catch((error) => {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(
+            `Artist ID ${artistId} not found for deletion.`,
+          );
+        }
+        throw error;
+      });
   }
 }

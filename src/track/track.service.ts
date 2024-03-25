@@ -1,70 +1,69 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateTrackDto } from './dto/create-track.dto';
-import { v4 as uuidv4 } from 'uuid';
-import { DatabaseService } from '../database/database.service';
+import { PrismaService } from '../database/prisma.service';
 import { Track } from './entities/track.entity';
+import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
+import { plainToClass } from 'class-transformer';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class TrackService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private prismaService: PrismaService) {}
 
-  create(trackData: CreateTrackDto): Track {
-    const trackId = uuidv4();
-    const artistExists = this.databaseService.artists.exists(
-      trackData.artistId,
-    );
-    const albumExists = this.databaseService.albums.exists(trackData.albumId);
-
-    const trackToAdd: Track = {
-      id: trackId,
-      name: trackData.name,
-      artistId: artistExists ? trackData.artistId : null,
-      albumId: albumExists ? trackData.albumId : null,
-      duration: trackData.duration,
-    };
-
-    this.databaseService.tracks.add(trackId, trackToAdd);
-    return trackToAdd;
+  async create(createTrackDto: CreateTrackDto): Promise<Track> {
+    const newTrack = await this.prismaService.track.create({
+      data: createTrackDto,
+    });
+    return plainToClass(Track, newTrack);
   }
 
-  findAll(): Track[] {
-    return this.databaseService.tracks.fetchAll();
+  async findAll(): Promise<Track[]> {
+    const tracks = await this.prismaService.track.findMany();
+    return tracks.map((track: Track) => plainToClass(Track, track));
   }
 
-  findOne(trackId: string): Track {
-    const track = this.databaseService.tracks.getOne(trackId);
-    if (!track) {
-      throw new NotFoundException(`Track with ID ${trackId} not found.`);
+  async findOne(trackId: string): Promise<Track> {
+    try {
+      const track = await this.prismaService.track.findUnique({
+        where: { id: trackId },
+      });
+      if (!track) throw new Error('Track not found');
+      return plainToClass(Track, track);
+    } catch (error) {
+      throw new NotFoundException(`Track with ID ${trackId} not found`);
     }
-    return track;
   }
 
-  update(trackId: string, updateTrackDto: UpdateTrackDto): Track {
-    if (!this.databaseService.tracks.exists(trackId)) {
-      throw new NotFoundException(`Track ${trackId} not found`);
+  async update(
+    trackId: string,
+    updateTrackDto: UpdateTrackDto,
+  ): Promise<Track> {
+    const trackToUpdate = await this.prismaService.track.findUnique({
+      where: { id: trackId },
+    });
+    if (!trackToUpdate) {
+      throw new NotFoundException(`Track with ID ${trackId} not found`);
     }
-    const track = this.findOne(trackId);
-    const updatedTrack = { ...track, ...updateTrackDto };
-
-    this.databaseService.tracks.add(trackId, updatedTrack);
-    return updatedTrack;
+    const updatedTrack = await this.prismaService.track.update({
+      where: { id: trackId },
+      data: updateTrackDto,
+    });
+    return plainToClass(Track, updatedTrack);
   }
 
-  remove(trackId: string): void {
-    const trackPresent = this.databaseService.tracks.exists(trackId);
-    if (!trackPresent) {
-      throw new NotFoundException(`No track with ID: ${trackId} not found.`);
-    }
-
-    this.databaseService.tracks.delete(trackId);
-
-    const isFavTrack = this.databaseService.favorites.favExists(
-      trackId,
-      'tracks',
-    );
-    if (isFavTrack) {
-      this.databaseService.favorites.deleteFav(trackId, 'tracks');
-    }
+  async delete(trackId: string): Promise<void> {
+    await this.prismaService.track
+      .delete({
+        where: { id: trackId },
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof PrismaClientKnownRequestError &&
+          error.code === 'P2025'
+        ) {
+          throw new NotFoundException(`Track with ID ${trackId} not found`);
+        }
+        throw error;
+      });
   }
 }

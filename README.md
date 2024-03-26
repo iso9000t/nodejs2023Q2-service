@@ -7,79 +7,119 @@ Welcome to the Home Library Service! This guide is designed to help you get set 
 
 ### Prerequisites
 
-Ensure you have these essentials:
-- **Git**: For cloning the repository. If it's not already on your system, [grab it here](https://git-scm.com/downloads).
-- **Node.js and npm**: Our service's heartbeat. Download Node.js [right here](https://nodejs.org/en/download/), and npm comes along with it.
+Before you begin, ensure you have the following installed on your system:
+- **Git**: Necessary for cloning the repository. Download it from [here](https://git-scm.com/downloads) if you haven't already.
+- **Docker**: For containerizing the application and its environment. Install Docker by following the instructions [here](https://docs.docker.com/get-docker/).
+- **Node.js and npm**: Required for running the service and managing dependencies. Install Node.js from [here](https://nodejs.org/en/download/); npm is included.
 
 ### Setup
 
-1. **Clone the Repository**: Start by cloning the project to your machine.
+1. **Clone the Repository**: Obtain the project's source code by cloning this repository. Replace `{repository URL}` with the actual repository URL.
 
+    ```bash
     git clone {repository URL}
+    ```
 
-    Don't forget to replace `{repository URL}` with the actual URL of this repository.
+2. **Environment Setup**: Set up your local environment by copying the provided example environment file and then configuring it according to your needs.
 
-2. **Environment Setup**: Copy the `.env.example` file to create a `.env` file that you can then configure according to your local environment.
- 
+    ```bash
     cp .env.example .env
+    ```
 
-    Edit the `.env` file to match your local setup.
+    Edit the `.env` file to suit your local environment settings.
 
-3. **Install Dependencies**: Jump into the project directory and fetch those dependencies.
+3. **Install Dependencies**: Navigate to the project directory and install the necessary dependencies.
 
+    ```bash
     npm install
+    ```
 
-    If you encounter any issues with dependencies, try fixing them with:
+    In case of dependency issues, attempt to resolve them with:
 
+    ```bash
     npm audit fix
+    ```
 
+## Usage
 
-### Start It Up
+### Starting the Service
 
-create the service:
+To get the service up and running, use Docker Compose. This will create the service in a detached state:
 
-docker-compose up -d (or use "docker:up" script)
+```bash
+docker-compose up -d
+```
 
-migrate: docker-compose exec home-library npx prisma migrate dev (or use "prisma:migrate" script)
+Alternatively, use the provided script:
 
-Head over to `http://localhost:4000` (or whatever port you've configured) to see the app live. 
-And don't miss out on the OpenAPI documentation at `http://localhost:4000/api-docs` for a comprehensive guide to what's possible with your new service.
+```bash
+npm run docker:up
+```
 
-## Check vulnerabilities 
+To migrate your database schema:
 
-docker scout cves (or "docker:scan" script)
+```bash
+docker-compose exec home-library npx prisma migrate dev
+```
 
-## Testing
+Or, use the migration script:
 
-Here's how to run the tests:
+```bash
+npm run prisma:migrate
+```
 
-- **Run All Tests** (Excluding Authorization):
- 
+Access the application at `http://localhost:4000` and explore the OpenAPI documentation at `http://localhost:4000/api-docs`.
+
+### Checking Vulnerabilities
+
+To check for vulnerabilities in Docker images:
+
+```bash
+docker scout cves
+```
+
+Or use the script:
+
+```bash
+npm run docker:scan
+```
+
+### Testing
+
+Execute tests using the following commands:
+
+- **Run All Tests** (excluding authorization checks):
+
+    ```bash
     npm run test
+    ```
 
 - **Run a Specific Test Suite**:
 
+    ```bash
     npm run test -- <path to suite>
+    ```
 
-- **With Authorization Checks**:
-
-    npm run test:auth (not for the first task)
- 
-    Or, for a specific suite:
-
-    npm run test:auth -- <path to suite>
- 
 
 ### Keeping It Clean
 
-Code cleanliness is next to godliness:
-- **Lint**:
+Maintain code quality and format:
 
+- **Linting**:
+
+    ```bash
     npm run lint
+    ```
 
-- **Format**:
+- **Formatting**:
 
+    ```bash
     npm run format
+    ```
+
+Docker images are available dev and prod versions at https://hub.docker.com/repository/docker/iso9000/homelib/general
+Thank you for using the app and good luck! 
+
 
 Docker images are available dev and prod versions at https://hub.docker.com/repository/docker/iso9000/homelib/general
 Thank you for using the app and good luck! 

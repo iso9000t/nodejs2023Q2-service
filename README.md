@@ -119,7 +119,3 @@ Maintain code quality and format:
 
 Docker images are available dev and prod versions at https://hub.docker.com/repository/docker/iso9000/homelib/general
 Thank you for using the app and good luck! 
-
-
-Docker images are available dev and prod versions at https://hub.docker.com/repository/docker/iso9000/homelib/general
-Thank you for using the app and good luck! 

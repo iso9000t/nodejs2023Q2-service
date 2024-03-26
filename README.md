@@ -43,7 +43,7 @@ docker-compose up -d (or use "docker:up" script)
 migrate: docker-compose exec home-library npx prisma migrate dev (or use "prisma:migrate" script)
 
 Head over to `http://localhost:4000` (or whatever port you've configured) to see the app live. 
-And don't miss out on the OpenAPI documentation at `http://localhost:4000/api-doc/` for a comprehensive guide to what's possible with your new service.
+And don't miss out on the OpenAPI documentation at `http://localhost:4000/api-docs` for a comprehensive guide to what's possible with your new service.
 
 ## Check vulnerabilities 
 
@@ -81,4 +81,5 @@ Code cleanliness is next to godliness:
 
     npm run format
 
-Thank you for using the app and good luck!
+Docker images are available dev and prod versions at https://hub.docker.com/repository/docker/iso9000/homelib/general
+Thank you for using the app and good luck! 
